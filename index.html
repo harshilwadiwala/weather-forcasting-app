@@ -3,29 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Next-Day Weather Forecast</title>
+    <title>Forecastly</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-           
             background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80');
             background-repeat: no-repeat;
             background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: -1;
         }
         .weather-card {
             backdrop-filter: blur(10px);
             background-color: rgba(45, 55, 72, 0.7);
             border: 1px solid rgba(74, 85, 104, 0.5);
         }
-               
+        
+        /* Keyframes for the fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply the fade-in animation to the weather display */
+        .animate-fadeIn {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        /* Keyframes for the dot pulse spinner */
+        @keyframes dotPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+        
+        /* Apply the dot pulse animation to the spinner */
+        .dot-spinner > div {
+            animation: dotPulse 1.2s infinite ease-in-out;
+        }
+        .dot-spinner > div:nth-child(2) { animation-delay: 0.4s; }
+        .dot-spinner > div:nth-child(3) { animation-delay: 0.8s; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="text-gray-100 flex items-center justify-center min-h-screen p-4">
 
     <div class="weather-card max-w-lg w-full p-8 rounded-xl shadow-lg transition-all duration-300 transform scale-100 hover:scale-[1.01] flex flex-col items-center">
-        <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6">Next-Day Weather Forecast</h1>
+        <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6">Forecastly | Weather Awaits </h1>
 
         <div class="w-full mb-6">
             <div class="relative rounded-lg shadow-sm">
@@ -40,7 +74,7 @@
         </div>
 
         <div id="weather-display" class="w-full text-center hidden">
-            <div class="mb-8">
+            <div class="mb-8 animate-fadeIn">
                 <h2 class="text-xl sm:text-2xl font-semibold text-gray-300">Weather in <span id="city-name" class="text-blue-400"></span></h2>
                 <p id="current-temp" class="text-6xl sm:text-7xl font-light mt-2"></p>
                 <p id="current-weather" class="text-lg sm:text-xl text-gray-400 font-medium"></p>
@@ -54,7 +88,11 @@
         </div>
 
         <div id="loading" class="mt-8 hidden">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-4 border-blue-500"></div>
+            <div class="dot-spinner flex justify-center space-x-2">
+                <div class="w-4 h-4 rounded-full bg-blue-500"></div>
+                <div class="w-4 h-4 rounded-full bg-blue-500"></div>
+                <div class="w-4 h-4 rounded-full bg-blue-500"></div>
+            </div>
             <p class="mt-2 text-blue-400">Fetching weather...</p>
         </div>
     </div>
@@ -208,6 +246,5 @@
             }
         });
     </script>
-
 </body>
 </html>
