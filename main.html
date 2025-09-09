@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next-Day Weather Forecast</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: red;
+            background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80');
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .weather-card {
+            backdrop-filter: blur(10px);
+            background-color: rgba(45, 55, 72, 0.7);
+            border: 1px solid rgba(74, 85, 104, 0.5);
+        }
+               
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="weather-card max-w-lg w-full p-8 rounded-xl shadow-lg transition-all duration-300 transform scale-100 hover:scale-[1.01] flex flex-col items-center">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6">Next-Day Weather Forecast</h1>
+
+        <div class="w-full mb-6">
+            <div class="relative rounded-lg shadow-sm">
+                <input type="text" id="city-input" placeholder="Enter a city name..." class="w-full px-4 py-3 pr-16 bg-gray-700 text-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">
+                <button id="search-btn" class="absolute inset-y-0 right-0 flex items-center px-4 text-gray-200 bg-blue-600 hover:bg-blue-700 rounded-r-lg transition-colors duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+            </div>
+            <div id="message" class="mt-2 text-center font-medium text-red-400"></div>
+        </div>
+
+        <div id="weather-display" class="w-full text-center hidden">
+            <div class="mb-8">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-300">Weather in <span id="city-name" class="text-blue-400"></span></h2>
+                <p id="current-temp" class="text-6xl sm:text-7xl font-light mt-2"></p>
+                <p id="current-weather" class="text-lg sm:text-xl text-gray-400 font-medium"></p>
+            </div>
+
+            <div class="w-full p-4 border border-gray-600 rounded-xl shadow-md transition-all duration-300 hover:shadow-lg">
+                <h3 class="text-xl font-bold mb-4">Tomorrow's Forecast</h3>
+                <p id="next-day-temp" class="text-4xl font-semibold mb-2"></p>
+                <p id="next-day-weather" class="text-md sm:text-lg text-gray-400"></p>
+            </div>
+        </div>
+
+        <div id="loading" class="mt-8 hidden">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-4 border-blue-500"></div>
+            <p class="mt-2 text-blue-400">Fetching weather...</p>
+        </div>
+    </div>
+
+    <script>
+        const weatherCodes = {
+            0: "Clear Sky ☀️",
+            1: "Mostly Clear 🌤️",
+            2: "Partly Cloudy ⛅",
+            3: "Overcast ☁️",
+            45: "Foggy 🌫️",
+            48: "Depositing Rime Fog 🌬️",
+            51: "Drizzle 🌧️",
+            53: "Moderate Drizzle 🌧️",
+            55: "Dense Drizzle 🌧️",
+            56: "Freezing Drizzle 🌧️",
+            57: "Dense Freezing Drizzle 🌧️",
+            61: "Rain 🌧️",
+            63: "Moderate Rain 🌧️",
+            65: "Heavy Rain 🌧️",
+            66: "Freezing Rain 🌧️",
+            67: "Heavy Freezing Rain 🌧️",
+            71: "Snowfall ❄️",
+            73: "Moderate Snowfall ❄️",
+            75: "Heavy Snowfall ❄️",
+            77: "Snow Grains 🌨️",
+            80: "Rain Showers 🌦️",
+            81: "Moderate Rain Showers 🌦️",
+            82: "Violent Rain Showers ⛈️",
+            85: "Snow Showers 🌨️",
+            86: "Heavy Snow Showers 🌨️",
+            95: "Thunderstorm 🌩️",
+            96: "Thunderstorm with Hail ⚡",
+            99: "Thunderstorm with Heavy Hail ⚡"
+        };
+        const openWeatherMapToOpenMeteo = {
+            "01d": 0, "01n": 0,
+            "02d": 2, "02n": 2, "03d": 3, "03n": 3, "04d": 3, "04n": 3,
+            "09d": 63, "09n": 63, "10d": 61, "10n": 61, "11d": 95, "11n": 95,
+            "13d": 73, "13n": 73,
+            "50d": 45, "50n": 45
+        };
+
+        const cityInput = document.getElementById('city-input');
+        const searchBtn = document.getElementById('search-btn');
+        const weatherDisplay = document.getElementById('weather-display');
+        const loadingSpinner = document.getElementById('loading');
+        const messageDisplay = document.getElementById('message');
+
+        const cityNameElem = document.getElementById('city-name');
+        const currentTempElem = document.getElementById('current-temp');
+        const currentWeatherElem = document.getElementById('current-weather');
+        const nextDayTempElem = document.getElementById('next-day-temp');
+        const nextDayWeatherElem = document.getElementById('next-day-weather');
+
+        function showMessage(text, isError = true) {
+            messageDisplay.textContent = text;
+            messageDisplay.className = `mt-2 text-center font-medium ${isError ? 'text-red-400' : 'text-green-400'}`;
+        }
+
+        function clearDisplay() {
+            messageDisplay.textContent = '';
+            weatherDisplay.classList.add('hidden');
+            loadingSpinner.classList.add('hidden');
+        }
+
+        async function fetchWeatherData(city) {
+            clearDisplay();
+            loadingSpinner.classList.remove('hidden');
+
+            const OPENWEATHERMAP_API_KEY = 'fd45801cd0ab66a461ead692149c71b4';
+
+            try {
+                const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${OPENWEATHERMAP_API_KEY}`;
+                const geoResponse = await fetch(geoUrl);
+                const geoData = await geoResponse.json();
+                
+                if (!geoData || geoData.length === 0) {
+                    showMessage("City not found. Please try again.");
+                    loadingSpinner.classList.add('hidden');
+                    return;
+                }
+                
+                const { lat, lon, name } = geoData[0];
+
+                const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHERMAP_API_KEY}&units=metric`;
+                const currentResponse = await fetch(currentUrl);
+                const currentData = await currentResponse.json();
+
+                if (!currentResponse.ok) {
+                    throw new Error(currentData.message || 'Failed to fetch current weather data.');
+                }
+
+                const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=2`;
+                const forecastResponse = await fetch(forecastUrl);
+                const forecastData = await forecastResponse.json();
+
+                if (!forecastResponse.ok) {
+                    throw new Error(forecastData.reason || 'Failed to fetch forecast data.');
+                }
+
+                const daily = forecastData.daily;
+
+                if (!daily || daily.time.length < 2) {
+                    showMessage("Next day forecast not available.");
+                    loadingSpinner.classList.add('hidden');
+                    return;
+                }
+
+                const nextDayIndex = 1;
+                const nextDayMinTemp = daily.temperature_2m_min[nextDayIndex];
+                const nextDayMaxTemp = daily.temperature_2m_max[nextDayIndex];
+                const nextDayCode = daily.weather_code[nextDayIndex];
+
+                cityNameElem.textContent = name;
+                currentTempElem.textContent = `${Math.round(currentData.main.temp)}°C`;
+                const iconCode = currentData.weather[0].icon;
+                const mappedWeatherCode = openWeatherMapToOpenMeteo[iconCode] || 3;
+                currentWeatherElem.textContent = weatherCodes[mappedWeatherCode];
+                nextDayTempElem.textContent = `${Math.round(nextDayMinTemp)}°C / ${Math.round(nextDayMaxTemp)}°C`;
+                nextDayWeatherElem.textContent = weatherCodes[nextDayCode] || "Weather info not available.";
+
+                weatherDisplay.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                showMessage("Weather forecast successfully retrieved.", false);
+
+            } catch (error) {
+                console.error("Error fetching weather data:", error);
+                showMessage("An error occurred. Please try again later. Check your API key.");
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        searchBtn.addEventListener('click', () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                fetchWeatherData(city);
+            } else {
+                showMessage("Please enter a city name.");
+            }
+        });
+
+        cityInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                const city = cityInput.value.trim();
+                if (city) {
+                    fetchWeatherData(city);
+                } else {
+                    showMessage("Please enter a city name.");
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
